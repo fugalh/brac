@@ -1,0 +1,70 @@
+class TellPlugin < Plugin
+
+  SUBS = {
+    :self => {
+      /<i>/ => "you",
+      /<my>/ => "your",
+      /<mine>/ => "yours",
+      /<i'm>/ => "you're"
+    },
+    :all => {
+      /<you>/ => "I",
+      /<your>/ => "my",
+      /<yours>/ => "mine"
+      /<you're>/ => "I'm"
+    },
+    :other => {
+      /<i>/ => "he",
+      /<(<my|mine)>/ => "his",
+      /<his>/ => "your"
+    },
+    :pre {
+      /i +am/i => "<i'm>",
+      /you +are/i => "<you're>",
+      /he +is/i => "<he's>",
+
+      /[^\](i|my|mine|i'm)/ => " <#{$1}>",
+      /[^\](you|your|yours|you're)/ => " <#{$1}>",
+      /[^\](he|him|his|he's)/ => " <#{$1}>",
+      /[^\](she|her|hers|she's)/ => " <#{$1}>"
+    }
+  }
+  def initialize
+    super
+    @messages = {}
+  end
+
+  def tell m, params
+    return m.reply("huh?") unless params[:who] and params[:subject]
+    params[:who] = m.sourcenick if params[:who] == "me"
+    params[:scope] ||= "channel"
+    (@messages[params[:who]] ||= []) << {
+      :source => m,
+      :subject => params[:subject],
+      :scope => params[:scope],
+      :channel => m.channel
+    }
+    m.okay
+  end
+
+  def listen m
+    return unless PrivMessage === m
+
+    if @messages.has_key?(m.sourcenick)
+      @messages.delete(m.sourcenick).each do |message|
+        reply = message[:subject]
+        m.reply "#{m.sourcenick}: #{message[:source].sourcenick} says #{message[:subject]}"
+      end
+    end
+  end
+
+  def help plugin, topic=""
+    "tell <nick> [scope] <message> -- scope is one of global/channel/private"
+  end
+end
+
+plugin = TellPlugin.new
+plugin.map 'tell :who :scope *subject',
+  :defaults => {:scope => "channel"},
+  :requirements => {:scope => /(global|channel|private)/}
+plugin.map 'tell :who *subject'
