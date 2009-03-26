@@ -1,0 +1,11 @@
+--- 
+core.address_prefix: 
+- "-"
+irc.nick: brac
+server.list: 
+- irc.freenode.net
+auth.password: youwish
+irc.join_channels: 
+- "#utah"
+- "#utaug"
+server.password: youwishagain
